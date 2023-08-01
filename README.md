@@ -24,7 +24,9 @@ npx hardhat compile
 npx hardhat run scripts/deploy.js
 ```
 
-5. Call the functions in the smart contract
+5. Obtain the logged address of the deployed smart contract and add it to the .env file
+
+6. Call the functions in the smart contract
 
 ```bash
 npx hardhat run scripts/calls.js
