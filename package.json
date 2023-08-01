@@ -1,0 +1,24 @@
+{
+  "name": "ujira",
+  "version": "1.0.0",
+  "description": "Ujira is a blockchain-based platform that enables transparent, instant, and secure distribution of dividends to shareholders",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "shares",
+    "dividends",
+    "blockchain"
+  ],
+  "author": "badass-techie",
+  "license": "MIT",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^2.0.2",
+    "ethers": "^5.6.9",
+    "hardhat": "^2.16.1"
+  },
+  "dependencies": {
+    "dotenv": "^16.3.1"
+  }
+}
