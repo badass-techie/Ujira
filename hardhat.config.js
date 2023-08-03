@@ -9,12 +9,10 @@ module.exports = {
       url: "https://testapi.mara.xyz/http",
       accounts: [process.env.PRIVATE_KEY],
       chainId: 123456,
-      gas: 2100000,
-      gasPrice: 1000000,
     },
   },
   solidity: {
-    version: '0.8.1',
+    version: '0.8.9',
     settings: {
       optimizer: {
         enabled: true,

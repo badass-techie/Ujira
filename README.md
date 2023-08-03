@@ -29,5 +29,5 @@ npx hardhat run scripts/deploy.js
 6. Call the functions in the smart contract
 
 ```bash
-npx hardhat run scripts/calls.js
+node scripts/calls.js <function-name>
 ```

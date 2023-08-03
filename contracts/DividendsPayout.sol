@@ -1,25 +1,12 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
-
-interface IERC20 {
-    function totalSupply() external view returns(uint256);
-    function balanceOf(address account) external view returns(uint256);
-    function transfer(address recipient, uint256 amount) external returns(bool);
-    function allowance(address owner, address spender) external view returns(uint256);
-    function approve(address spender, uint256 amount) external returns(bool);
-    function transferFrom(address sender, address recipient, uint256 amount) external returns(bool);
-    event Transfer(address indexed from, address indexed to, uint256 value);
-    event Approval(address indexed owner, address indexed spender, uint256 value); 
-}
+pragma solidity ^0.8.9;
 
 contract DividendsPayout {
     address private owner;
-    IERC20 private MARA;
     uint256 private constant TRANSACTION_FEE = 3; // 3% transaction fee
 
-    constructor(address _tokenAddress) {
+    constructor() {
         owner = msg.sender;
-        MARA = IERC20(_tokenAddress);   // implement IERC20 with MARA
     }
 
     struct Shareholder {
@@ -45,7 +32,9 @@ contract DividendsPayout {
     mapping(address => Shareholder) private shareholders;
     mapping(address => address[]) private companyShareholders;
 
-    event Payout(address indexed companyAddress, uint256 amount, uint256 timestamp);
+    event Deposit(address indexed companyAddress, uint256 amount, uint256 transactionFee, uint256 timestamp);
+    event Payout(address indexed companyAddress, uint256 totalAmount, uint256 transactionFee, uint256[] amounts, uint256 timestamp);    // amounts are for each shareholder in the same order as companyShareholders
+    event Withdraw(address indexed companyAddress, uint256 amount, uint256 transactionFee, uint256 timestamp);
 
     function addOrChangeCompany(string memory _name, string memory _symbol, string memory _description, uint256 _payoutInterval) public {
         Company storage company = companies[msg.sender];
@@ -136,8 +125,9 @@ contract DividendsPayout {
         uint256 balance = company.balance;
         uint256 transactionFee = balance * TRANSACTION_FEE / 100;
         balance -= transactionFee;
-        require(MARA.transfer(msg.sender, balance), "Transfer failed.");
-        require(MARA.transfer(owner, transactionFee), "Transfer failed.");
+        payable(msg.sender).transfer(balance);  // Transfer balance back to company
+        payable(owner).transfer(transactionFee);    // Transfer transaction fee to us
+        emit Withdraw(msg.sender, balance, transactionFee, block.timestamp);
 
         // Remove shareholders
         for (uint256 i = 0; i < companyShareholders[msg.sender].length; i++) {
@@ -156,15 +146,17 @@ contract DividendsPayout {
     }
 
     function deposit() external payable {
-        Company memory company = companies[msg.sender];
+        Company storage company = companies[msg.sender];
         require(company.companyAddress != address(0), "Company does not exist.");
         require(msg.value > 0, "Amount must be greater than 0.");
+        // if any require statement fails, the transaction will revert automatically so we don't need to manually transfer back the tokens
+
         uint256 amount = msg.value;
         uint256 transactionFee = amount * TRANSACTION_FEE / 100;
         amount -= transactionFee;
-        require(MARA.transferFrom(msg.sender, address(this), amount), "Transfer failed.");
         company.balance += amount;
-        require(MARA.transferFrom(msg.sender, owner, transactionFee), "Transfer failed.");
+        payable(owner).transfer(transactionFee);    // Transfer transaction fee to us
+        emit Deposit(msg.sender, amount, transactionFee, block.timestamp);
     }
 
     function payout(uint256 _amount) external {
@@ -172,24 +164,27 @@ contract DividendsPayout {
         require(company.companyAddress != address(0), "Company does not exist.");
         require(company.balance >= _amount, "Balance must be greater than amount.");
         require(block.timestamp >= company.lastPayoutTimestamp + company.payoutInterval, "Payout interval not reached.");
+        require(companyShareholders[msg.sender].length > 0, "No shareholders.");
 
         uint256 totalShares = company.totalShares;
         uint256 totalPayout = _amount;
         uint256 transactionFee = totalPayout * TRANSACTION_FEE / 100;
         totalPayout -= transactionFee;
 
+        uint256[] memory payouts = new uint256[](companyShareholders[msg.sender].length);
         for (uint256 i = 0; i < companyShareholders[msg.sender].length; i++) {
             Shareholder storage shareholder = shareholders[companyShareholders[msg.sender][i]];
             uint256 amount = totalPayout * shareholder.shares / totalShares;
-            require(MARA.transfer(shareholder.shareholderAddress, amount), "Transfer failed.");
+            payable(shareholder.shareholderAddress).transfer(amount);   // Transfer tokens to shareholder
             company.balance -= amount;
+            payouts[i] = amount;
         }
 
-        require(MARA.transfer(owner, transactionFee), "Transfer failed.");
+        payable(owner).transfer(transactionFee);    // Transfer transaction fee to us
         company.balance -= transactionFee;
         company.lastPayoutTimestamp = block.timestamp;
 
-        emit Payout(msg.sender, totalPayout, block.timestamp);
+        emit Payout(msg.sender, totalPayout, transactionFee, payouts, block.timestamp);
     }
 
     function withdraw(uint256 _amount) external {
@@ -198,8 +193,9 @@ contract DividendsPayout {
         require(company.balance >= _amount, "Balance must be greater than amount.");
         uint256 transactionFee = _amount * TRANSACTION_FEE / 100;
         _amount -= transactionFee;
-        require(MARA.transfer(msg.sender, _amount), "Transfer failed.");
+        payable(msg.sender).transfer(_amount);  // Transfer tokens to company
         company.balance -= _amount;
-        require(MARA.transfer(owner, transactionFee), "Transfer failed.");
+        payable(owner).transfer(transactionFee);    // Transfer transaction fee to us
+        emit Withdraw(msg.sender, _amount, transactionFee, block.timestamp);
     }
 }

@@ -8,14 +8,12 @@ const hre = require("hardhat");
 
 async function main() {
   const DividendsPayout = await hre.ethers.getContractFactory("DividendsPayout");
-  const tokenAddress = hre.ethers.utils.getAddress("0x5FbDB2315678afecb367f032d93F642f64180aa3");
-  const dividends_payout = await DividendsPayout.deploy(tokenAddress);
 
+  console.log("Deploying contract...");
+  const dividends_payout = await DividendsPayout.deploy();
   await dividends_payout.deployed();
 
-  console.log(
-    ` deployed to https://testnet-explorer.mara.xyz/address/${dividends_payout.address}`
-  );
+  console.log(`Deployed to https://testnet-explorer.mara.xyz/address/${dividends_payout.address}`);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
