@@ -21,7 +21,7 @@ npx hardhat compile
 4. Deploy the smart contract
 
 ```bash
-npx hardhat run scripts/deploy.js
+npx hardhat run scripts/deploy.js --network maratestnet
 ```
 
 5. Obtain the logged address of the deployed smart contract and add it to the .env file
